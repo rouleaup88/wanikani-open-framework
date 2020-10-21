@@ -1,5 +1,5 @@
 /* Wanikani Open Framework - www.wanikani.com
- * Version 1.0.7
+ * Version 1.0.8
 ----------------------------------*/
 
 /* Layout helpers
@@ -1430,3 +1430,258 @@ html #wkof_ds .ui-button.ui-state-disabled:active {
 #wkof_ds #wkof_progbar_dlg .wkof_progbar {font-size:.4em;border:1px solid black;margin-bottom:6px;}
 #wkof_ds #wkof_progbar_dlg .wkof_progbar .ui-progressbar-value {background-image:linear-gradient(0deg, #faac05, #fdde9b)}
 
+
+/* Classes for styling html type elements
+-------------------------------------------*/
+
+#wkof_ds .row.html_shade {
+    border-color: hsl(0 0% 78% / 1);
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 5px;
+    background-color: hsl(0 0% 91% / 1);
+}
+
+#wkof_ds .html_type .html_column_left.html_shaded {
+    width: calc(50% - 0.5em - 14px);
+}
+
+#wkof_ds .html_type .html_column_left {
+    float: left;
+    width: calc(50% - 0.25em);
+    padding-right: 0.25em;
+    padding-top: 0.25em;
+}
+
+#wkof_ds .html_type .html_column_right.html_shaded {
+    width: calc(50% - 0.5em - 14px);
+}
+
+#wkof_ds .html_type .html_column_left {
+    float: left;
+    width: calc(50% - 0.25em);
+    padding-right: 0.25em;
+    padding-top: 0.25em;
+}
+
+#wkof_ds .html_type .html_column_right {
+    float: right;
+    width: calc(50% - 0.25em);
+    padding-left: 0.25em;
+    padding-top: 0.25em;
+}
+
+#wkof_ds .html_type .html_column_right + *,
+#wkof_ds .html_type .html_column_left + * {
+    margin-top: 0px;
+}
+
+#wkof_ds .wkof_settings.narrow .html_column_right,
+#wkof_ds .wkof_settings.narrow .html_column_left {
+    float: none;
+    width: calc(100% - 2px);
+    padding: 0px;
+}
+
+#wkof_ds .html_type .html_row {
+    display: block;
+    vertical-align: top;
+    line-height: 0;
+    margin-top: 0.2em;
+    margin-bottom: 0.4em;
+    width: 100%;
+}
+
+#wkof_ds .html_type .html_unshaded {
+    width: 100%;
+}
+
+#wkof_ds .html_type .html_shaded {
+    background-color: hsl(0 0% 87% / 1);
+    border-radius: 4px;
+    border-color: hsl(0 0% 80% / 1);
+    border-width: 1px;
+    border-style: solid;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    padding-top: 0.21em;
+    padding-bottom: 0.21em;
+    margin-top: 0.2em;
+    margin-bottom: 0.8em;
+    width: calc(100% - 1em - 2px);
+}
+
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_column_right .html_shaded,
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_column_left .html_shaded {
+    margin-top: -0.1em;
+}
+
+#wkof_ds .html_type .html_tight {
+    display: inline-block;
+    line-height: 1.3em;
+    margin-top: 0.2em;
+    margin-bottom: 0px;
+    width: 100%;
+    text-align: left;
+}
+
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_shaded .html_left {
+    width: 200px;
+}
+
+#wkof_ds .wkof_settings .html_type .html_header{
+    font-size: 16px;
+    color: #000000;
+}
+
+#wkof_ds .wkof_settings .html_type .html_header,
+#wkof_ds .wkof_settings .html_type .html_spaced {
+    display: inline-block;
+    line-height: 1.3em;
+    margin-top: 0.2em;
+    margin-bottom: 0.4em;
+    width: 100%;
+    text-align: left;
+}
+
+#wkof_ds .html_type .html_spaced > * {
+    width: 100%;
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+#wkof_ds .html_type .html_spaced > label,
+#wkof_ds .html_type .html_spaced > p,
+#wkof_ds .html_type .html_spaced > span,
+#wkof_ds .html_type .html_spaced > a,
+#wkof_ds .wkof_settings.narrow .html_type .html_left,
+#wkof_ds .html_type .html_tight > * {
+    width: 100%;
+    padding-left: 1px;
+    text-align: left;
+}
+
+#wkof_ds .html_type .html_right > button,
+#wkof_ds .html_type button.html_right,
+#wkof_ds .html_type .html_spaced > button,
+#wkof_ds .html_type button.html_spaced {
+    max-width: fit-content;
+}
+
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_column_right .html_row .html_left,
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_column_left .html_row .html_left {
+    width: calc(210px / 2);
+}
+
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_left {
+    display: block;
+    float: left;
+    vertical-align: top;
+    width: 210px;
+    margin-right: 10px;
+    margin-top: 0.25em;
+    line-height: 1.3em;
+}
+
+#wkof_ds .wkof_settings:not(.narrow) .html_left > * {
+    text-align: right;
+}
+
+#wkof_ds .wkof_settings.narrow .html_left > * {
+    text-align: left;
+    padding-left: 1px;
+}
+
+#wkof_ds .html_left > * {
+    margin: 0;
+    width: 100%;
+    text-align: right;
+    display: inline-block;
+}
+/*
+#wkof_ds .html_left:after,
+#wkof_ds .html_spaced:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+*/
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_column_left .html_right,
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_column_right .html_right {
+    width: calc(100% - 115px);
+}
+
+#wkof_ds .wkof_settings .html_type .html_right {
+    display: block;
+    vertical-align: top;
+    line-height: 1.3em;
+    text-align: left;
+    overflow: hidden;
+    width: unset;
+    height: fit-content;
+    min-height: 30px;
+}
+
+#wkof_ds .wkof_settings .html_type input.html_right { /*Work around a bug in chrome*/
+    height: 30px;
+}
+
+#wkof_ds .wkof_settings:not(.narrow) .html_type .html_right {
+    width: calc(100% - 220px);
+}
+
+#wkof_ds .html_type .html_right > * {
+    width: 100%;
+    margin-top: 0.21em;
+    margin-bottom: 0.21em;
+    text-align: left;
+}
+
+#wkof_ds .html_type .html_right > * {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+#wkof_ds .wkof_settings.narrow .html_type .left,
+#wkof_ds .html_type.full .left {
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+    padding-bottom: 4px;
+    padding-top: 5px;
+    padding-left: 6px;
+    border-color: hsl(0 0% 86% / 1);
+    border-style: solid;
+    border-bottom-width: 0px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    background-color: hsl(0 0% 87% / 1);
+    text-shadow: 0 2px 0 #ffffff;
+    width: calc(100% - 8px);
+}
+
+#wkof_ds .wkof_settings.narrow .html_type .right,
+#wkof_ds .html_type.full .right {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+}
+
+#wkof_ds .html_type li {
+    margin-left: 30px;
+}
+
+#wkof_ds .html_type .html_right > option,
+#wkof_ds .html_type .html_spaced > option {
+   margin: 0px;
+}
+
+#wkof_ds .wkof_settings .html_type .right select {
+   overflow-x: hidden;
+   overflow-y: scroll;
+   height: auto;
+}

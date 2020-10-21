@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name        Wanikani Open Framework - Settings module
+// @name        Wanikani Open Framework - Settings module - Version test Wkit
 // @namespace   rfindley
 // @description Settings module for Wanikani Open Framework
-// @version     1.0.13
+// @version     1.0.0
 // @copyright   2018+, Robin Findley
 // @license     MIT; http://opensource.org/licenses/MIT
 // ==/UserScript==
@@ -72,7 +72,7 @@
 			switch (item.type) {
 				case 'tabset':
 					child_passback = {};
-					for (cname in item.content) 
+					for (cname in item.content)
 						non_page += parse_item(cname, item.content[cname], child_passback);
 					if (child_passback.tabs)
 						html = assemble_pages(id, child_passback.tabs, child_passback.pages);
@@ -86,7 +86,7 @@
 					}
 					passback.tabs.push('<li id="'+id+'_tab"'+to_title(item.hover_tip)+'><a href="#'+id+'">'+item.label+'</a></li>');
 					child_passback = {};
-					for (cname in item.content) 
+					for (cname in item.content)
 						non_page += parse_item(cname, item.content[cname], child_passback);
 					if (child_passback.tabs)
 						html = assemble_pages(id, child_passback.tabs, child_passback.pages);
@@ -98,7 +98,7 @@
 				case 'group':
 					if (typeof item.content !== 'object') item.content = {};
 					child_passback = {};
-					for (cname in item.content) 
+					for (cname in item.content)
 						non_page += parse_item(cname, item.content[cname], child_passback);
 					if (child_passback.tabs)
 						html = assemble_pages(id, child_passback.tabs, child_passback.pages);
@@ -109,22 +109,7 @@
 				case 'list':
 					var classes = 'setting', attribs = '';
 					context.config_list[name] = item;
-					value = get_value(context, base, name);
-					if (value === undefined) {
-						if (item.default !== undefined) {
-							value = item.default;
-						} else {
-							if (item.multi === true) {
-								value = {};
-								Object.keys(item.content).forEach(function(key){
-									value[key] = false;
-								});
-							} else {
-								value = Object.keys(item.content)[0];
-							}
-						}
-						set_value(context, base, name, value);
-					}
+                    populateDefaults(context, base, name, item);
 					if (item.type === 'list') {
 						classes += ' list';
 						attribs += ' size="'+(item.size || Object.keys(item.content).length || 4)+'"';
@@ -141,11 +126,7 @@
 				case 'checkbox':
 					context.config_list[name] = item;
 					html = make_label(item);
-					value = get_value(context, base, name);
-					if (value === undefined) {
-						value = (item.default || false);
-						set_value(context, base, name, value);
-					}
+                    populateDefaults(context, base, name, item);
 					html += wrap_right('<input id="'+id+'" class="setting" type="checkbox" name="'+name+'">');
 					html = wrap_row(html, item.full_width, item.hover_tip);
 					break;
@@ -157,12 +138,7 @@
 					if (itype === 'input') itype = item.subtype || 'text';
 					context.config_list[name] = item;
 					html += make_label(item);
-					value = get_value(context, base, name);
-					if (value === undefined) {
-						var is_number = (item.type==='number' || item.subtype==='number');
-						value = (item.default || (is_number==='number'?0:''));
-						set_value(context, base, name, value);
-					}
+                    populateDefaults(context, base, name, item);
 					html += wrap_right('<input id="'+id+'" class="setting" type="'+itype+'" name="'+name+'"'+(item.placeholder?' placeholder="'+escape_attr(item.placeholder)+'"':'')+'>');
 					html = wrap_row(html, item.full_width, item.hover_tip);
 					break;
@@ -170,11 +146,7 @@
 				case 'color':
 					context.config_list[name] = item;
 					html += make_label(item);
-					value = get_value(context, base, name);
-					if (value === undefined) {
-						value = (item.default || '#000000');
-						set_value(context, base, name, value);
-					}
+                    populateDefaults(context, base, name, item);
 					html += wrap_right('<input id="'+id+'" class="setting" type="color" name="'+name+'">');
 					html = wrap_row(html, item.full_width, item.hover_tip);
 					break;
@@ -196,28 +168,92 @@
 					break;
 
 				case 'html':
-					html += make_label(item);
-					html += item.html;
-					switch (item.wrapper) {
-						case 'row': html = wrap_row(html, null, item.hover_tip); break;
-						case 'left': html = wrap_left(html); break;
-						case 'right': html = wrap_right(html); break;
-					}
-					break;
+                    context.config_list[name] = item;
+                    var content = item.content;
+					for (cname in content){
+                        context.config_list[cname] = content[cname];
+                        populateDefaults(context, base, cname, content[cname]);
+                    }
+					html = make_label(item, item.hover_tip);
+					html += wrap_right(item.html);
+                    html = wrap_row_html(html, name, item.shade);
 			}
 			return html;
 
-			function make_label(item) {
+            function make_label(item, hover_tip) {
 				if (typeof item.label !== 'string') return '';
-				return wrap_left('<label for="'+id+'">'+item.label+'</label>');
+				return wrap_left('<label class="html_label" for="'+id+'"'+to_title(hover_tip)+'>'+item.label+'</label>');
 			}
 		}
 
 		//============
+        function populateDefaults(context, base, name, item){
+            var value;
+			switch (item.type) {
+				case 'dropdown':
+				case 'list':
+					value = get_value(context, base, name);
+					if (value === undefined) {
+						if (item.default !== undefined) {
+							value = item.default;
+						} else {
+							if (item.multi === true) {
+								value = {};
+								Object.keys(item.content).forEach(function(key){
+									value[key] = false;
+								});
+							} else {
+								value = Object.keys(item.content)[0];
+							}
+						}
+						set_value(context, base, name, value);
+					}
+					break;
+
+				case 'checkbox':
+					value = get_value(context, base, name);
+					if (value === undefined) {
+						value = (item.default || false);
+						set_value(context, base, name, value);
+					}
+					break;
+
+				case 'input':
+				case 'number':
+				case 'text':
+					var itype = item.type;
+					if (itype === 'input') itype = item.subtype || 'text';
+					value = get_value(context, base, name);
+					if (value === undefined) {
+						var is_number = (item.type==='number' || item.subtype==='number');
+						value = (item.default || (is_number==='number'?0:''));
+						set_value(context, base, name, value);
+					}
+					break;
+
+				case 'color':
+					value = get_value(context, base, name);
+					if (value === undefined) {
+						value = (item.default || '#000000');
+						set_value(context, base, name, value);
+					}
+					break;
+                case 'button': break;
+                default:
+					value = get_value(context, base, name);
+					if (value === undefined) {
+						if (item.default !== undefined)
+                            set_value(context, base, name, item.default);
+					}
+			}
+        }
+
+		//============
 		function assemble_pages(id, tabs, pages) {return '<div id="'+id+'" class="wkof_stabs"><ul>'+tabs.join('')+'</ul>'+pages.join('')+'</div>';}
 		function wrap_row(html,full,hover_tip) {return '<div class="row'+(full?' full':'')+'"'+to_title(hover_tip)+'>'+html+'</div>';}
+		function wrap_row_html(html, name, shade) {return '<div class="row full html_type'+(shade?' html_shade':'')+'" name="'+name+'">'+html+'</div>';}
 		function wrap_left(html) {return '<div class="left">'+html+'</div>';}
-		function wrap_right(html) {return '<div class="right">'+html+'</div>';}
+		function wrap_right(html, msg) {return '<div class="right msg">'+html+'</div>';}
 		function escape_text(text) {return text.replace(/[<>]/g, function(ch) {var map={'<':'&lt','>':'&gt;'}; return map[ch];});}
 		function escape_attr(text) {return text.replace(/"/g, '&quot;');}
 		function to_title(tip) {if (!tip) return ''; return ' title="'+tip.replace(/"/g,'&quot;')+'"';}
@@ -246,7 +282,7 @@
 				{text:'Cancel',click:cancel_btn.bind(context,context)}
 			],
 			width: width,
-			maxHeight: window.innerHeight,
+			maxHeight: document.body.clientHeight,
 			modal: false,
 			autoOpen: false,
 			appendTo: '#wkof_ds',
@@ -273,6 +309,17 @@
 		dialog_elem.find('button.setting').on('click', setting_button_clicked.bind(null,context));
 
 		if (typeof context.cfg.pre_open === 'function') context.cfg.pre_open(dialog);
+
+        for (var name in context.config_list) {
+            var item = context.config_list[name];
+            if (typeof item.pre_open === 'function'){
+                var base = 'wkof.settings["'+context.cfg.script_id+'"]';
+		        var path = (item.path || base+'["'+name+'"]');
+		    	path = path.replace(/@/g, base+'.');
+                var elem = $(dialog).find('div[name="'+name+'"]')[0];
+                item.pre_open(elem, path);
+            };
+        };
 		context.reversions = $.extend(true,{},wkof.settings[context.cfg.script_id]);
 		refresh(context);
 
@@ -491,7 +538,7 @@
 		}
 
 		// Style for valid/invalid
-		var parent = elem.closest('.right');
+		var parent = elem.closest('.msg');
 		parent.find('.note').remove();
 		if (typeof valid.msg === 'string' && valid.msg.length > 0)
 			parent.append('<div class="note'+(valid.valid?'':' error')+'">'+valid.msg+'</div>');
