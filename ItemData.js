@@ -2,7 +2,7 @@
 // @name        Wanikani Open Framework - ItemData module
 // @namespace   rfindley
 // @description ItemData module for Wanikani Open Framework
-// @version     1.0.17
+// @version     1.0.18
 // @copyright   2018+, Robin Findley
 // @license     MIT; http://opensource.org/licenses/MIT
 // ==/UserScript==
@@ -26,8 +26,7 @@
 	//########################################################################
 
 	function promise(){var a,b,c=new Promise(function(d,e){a=d;b=e;});c.resolve=a;c.reject=b;return c;}
-	function split_list(str) {return str.replace(/^\s+|\s*(,)\s*|\s+$/g, '$1').split(',').filter(function(name) {return (name.length > 0);});}
-
+    function split_list(str) {return str.replace(/、/g,',').replace(/[\s ]+/g,' ').trim().replace(/ *, */g, ',').split(',').filter(function(name) {return (name.length > 0);});}
 	//------------------------------
 	// Get the items specified by the configuration.
 	//------------------------------
@@ -51,32 +50,33 @@
 			var cfg = config[cfg_name];
 			var spec = wkof.ItemData.registry.sources[cfg_name];
 			if (!spec || typeof spec.fetcher !== 'function') {
-				console.log('wkof.ItemData.get_items() - Config "'+cfg_name+'" not registered!');
 				continue;
 			}
 			remaining++;
-			spec.fetcher(cfg, global_options)
-			.then(function(data){
-				var filter_promise;
-				if (typeof spec === 'object')
-					filter_promise = apply_filters(data, cfg, spec);
-				else
-					filter_promise = Promise.resolve(data);
-				filter_promise.then(function(data){
-					items = items.concat(data);
-					remaining--;
-					if (!remaining) fetch_promise.resolve(items);
-				});
-			})
+            let apply_procedure = after_fetcher.bind(null, $.extend(true, {}, cfg) )
+			spec.fetcher($.extend(true, {}, cfg), global_options)
+			.then(apply_procedure)
 			.catch(function(e){
 				if (e) throw e;
-				console.log('wkof.ItemData.get_items() - Failed for config "'+cfg_name+'"');
 				remaining--;
 				if (!remaining) fetch_promise.resolve(items);
 			});
 		}
 		if (remaining === 0) fetch_promise.resolve(items);
 		return fetch_promise;
+
+        function after_fetcher(cfg, data){
+            var filter_promise;
+            if (typeof spec === 'object')
+                filter_promise = apply_filters(data, $.extend(true, {}, cfg), spec);
+            else
+                filter_promise = Promise.resolve(data);
+            filter_promise.then(function(data){
+                items = items.concat(data);
+                remaining--;
+                if (!remaining) fetch_promise.resolve(items);
+            });
+        }
 	}
 
 	//------------------------------
@@ -166,28 +166,31 @@
 			});
 		}
 
-		return Promise.all(prep_promises).then(function(){
-			var result = [];
-			var max_level = Math.max(wkof.user.subscription.max_level_granted, wkof.user.override_max_level || 0);
-			for (var item_idx in items) {
-				var keep = true;
-				var item = items[item_idx];
-				if (is_wk_items && (item.data.level > max_level)) continue;
-				for (var filter_idx in filters) {
-					var filter = filters[filter_idx];
-					try {
-						keep = filter.func(filter.filter_value, item);
-						if (filter.invert) keep = !keep;
-						if (!keep) break;
-					} catch(e) {
-						keep = false;
-						break;
-					}
-				}
-				if (keep) result.push(item);
-			}
-			return result;
-		});
+        var do_the_filtering = filtering.bind(null, $.extend(true, {}, filters), is_wk_items);
+		return Promise.all(prep_promises).then(do_the_filtering);
+
+        function filtering(filters, is_wk_items){
+            var result = [];
+            var max_level = Math.max(wkof.user.subscription.max_level_granted, wkof.user.override_max_level || 0);
+            for (var item_idx in items) {
+                var keep = true;
+                var item = items[item_idx];
+                if (is_wk_items && (item.data.level > max_level)) continue;
+                for (var filter_idx in filters) {
+                    var filter = filters[filter_idx];
+                    try {
+                        keep = filter.func(filter.filter_value, item);
+                        if (filter.invert) keep = !keep;
+                        if (!keep) break;
+                    } catch(e) {
+                        keep = false;
+                        break;
+                    }
+                }
+                if (keep) result.push(item);
+            }
+            return result;
+        };
 	}
 
 	//------------------------------
