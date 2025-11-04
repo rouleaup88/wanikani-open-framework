@@ -2,8 +2,8 @@
 // @name        Wanikani Open Framework - Menu module
 // @namespace   rfindley
 // @description Menu module for Wanikani Open Framework
-// @version     1.0.10
-// @copyright   2018+, Robin Findley
+// @version     1.0.26
+// @copyright   2018-2024, Robin Findley
 // @license     MIT; http://opensource.org/licenses/MIT
 // ==/UserScript==
 
@@ -19,124 +19,162 @@
 	//########################################################################
 
 	function escape_attr(attr) {return attr.replace(/"/g,'\'');}
-	function escape_text(text) {return text.replace(/[<&>]/g, function(ch) {var map={'<':'&lt','&':'&amp;','>':'&gt;'}; return map[ch];});}
+	function escape_text(text) {return text.replace(/[<&>]/g, function(ch) {let map={'<':'&lt','&':'&amp;','>':'&gt;'}; return map[ch];});}
+
+	let top_menu, scripts_menu;
+    let listener_history = {};
+    let startup_ongoing = true
+
+	//------------------------------
+	// Handler that closes menus when clicking outside of menu.
+	//------------------------------
+	function body_click(e) {
+		top_menu.classList.remove('open');
+		for (let submenu of document.querySelectorAll('.scripts-submenu.open')) {
+			submenu.classList.remove('open');
+		}
+		document.body.removeEventListener('click', body_click);
+	}
+
+	function insert_gear_icon() {
+		if (!document.getElementById('wk-icon__gear')) {
+			let svg = document.querySelector('svg symbol[id^="wk-icon"]').closest('svg');
+			svg.insertAdjacentHTML('beforeend','<symbol id="wk-icon__gear" viewport="0 0 500 500"><path d="M405,310L492,310L492,195L405,190L379,146L423,71L319,8L275,85L225,85L181,8L77,71L121,146L95,190L8,190L8,310L95,310L121,354L77,429L181,492L225,415L275,415L319,492L423,429L379,354L405,310L325,281L281,325L219,325L176,281L176,219L219,176L281,176L325,219L325,281Z"></path></symbol>');
+		}
+	}
 
 	//------------------------------
 	// Install 'Scripts' header in menu, if not present.
 	//------------------------------
 	function install_scripts_header() {
 		// Abort if already installed.
-		if ($('.scripts-header').length !== 0) return false;
-		var top_menu;
+		if (document.querySelector('.scripts-header')) return false;
+		let summary_button, scripts_icon;
 
-		// Install html.
-		switch (location.pathname) {
-			case '/review/session':
-				// Install css and html.
-				if ($('style[name="scripts_submenu"]').length === 0) {
-					$('head').append(
-						'<style name="scripts_submenu">'+
-						'#scripts-menu.scripts-menu-icon {display:inline-block}'+
-						'#scripts-menu .scripts-icon {display:inline-block}'+
-						'#scripts-menu:not(.open) > .dropdown-menu {display:none;}'+
-						'#scripts-menu .scripts-submenu:not(.open) > .dropdown-menu {display:none;}'+
-						'#scripts-menu .dropdown-menu {position:absolute; background-color:#eee; margin:0; padding:5px 0; list-style-type:none; border:1px solid #333;}'+
-						'#scripts-menu .dropdown-menu > li {text-align:left; color:#333; white-space:nowrap; line-height:20px; padding:3px 0;}'+
-						'#scripts-menu .dropdown-menu > li.scripts-header {text-transform:uppercase; font-size:11px; font-weight:bold; padding:3px 20px;}'+
-						'#scripts-menu .dropdown-menu > li:hover:not(.scripts-header) {background-color:rgba(0,0,0,0.15)}'+
-						'#scripts-menu .dropdown-menu a {padding:3px 20px; color:#333; opacity:1;}'+
-						'#scripts-menu .scripts-submenu {position:relative;}'+
-						'#scripts-menu .scripts-submenu > a:after {content:"\uf0da"; font-family:"FontAwesome"; position:absolute; top:0; right:0; padding:3px 4px 3px 0;}'+
-						'#scripts-menu .scripts-submenu .dropdown-menu {left:100%; top:-6px;}'+
-						'</style>'
-					);
-				}
-				$('#summary-button a[href="/review"]').after(
-					'<div id="scripts-menu" class="scripts-menu-icon">'+
-					'  <a class="scripts-icon" href="#"><i class="icon-gear" title="Script Menu"></i></a>'+
-					'  <ul class="dropdown-menu">'+
-					'    <li class="scripts-header">Script Menu</li>'+
-					'  </ul>'+
-					'</div>'
-				);
-				top_menu = $('#scripts-menu');
-				$('#scripts-menu > a.scripts-icon').on('click', function(e){
-					top_menu.toggleClass('open');
-					if (top_menu.hasClass('open')) {
-						$('body').on('click.scripts-menu', function(){
-							top_menu.removeClass('open');
-							$('body').off('.scripts-menu');
-						});
-					}
-					return false;
-				});
-				break;
+		// Install css.
+		if (!document.querySelector('style[name="scripts_submenu"]')) {
+			document.head.insertAdjacentHTML('beforeend',
+				`<style name="scripts_submenu">
+				.character-header {z-index:100;}
+				.character-header__menu-navigation a {text-decoration:none;}
+				.character-header__menu-navigation-link {margin-right: 8px;}
+				#scripts-menu.menu-type-quiz {text-shadow:none;}
+				#scripts-menu.menu-type-quiz:not(.open) > .dropdown-menu {display:none;}
+				#scripts-menu.menu-type-quiz .scripts-submenu:not(.open) > .dropdown-menu {display:none;}
+				#scripts-menu.menu-type-quiz ul.dropdown-menu {position:absolute; background-color:#eee; margin:0; padding:5px 0; list-style-type:none; border:1px solid #333; display:block;}
 
-			default:
-				// Install css and html.
-				top_menu = $('[class$="account"]');
-				if ($('style[name="scripts_submenu"]').length === 0) {
-					$('head').append(
-						'<style name="scripts_submenu">'+
-						'.sitemap__section.scripts-noposition {position:initial;}'+
-						'.scripts-submenu.open>.dropdown-menu {display:block;position:absolute;top:0px;margin-top:0;left:-8px;transform:scale(1) translateX(-100%);min-width:200px}'+
-						'.scripts-submenu .dropdown-menu:before {left:100%;top:12px;z-index:-1;}'+
-						'.scripts-submenu .dropdown-menu .sitemap__pages {padding:5px 15px 0px 15px;}'+
-						'.scripts-submenu .dropdown-menu .sitemap__page:last-child {margin-bottom:0;}'+
-						'.scripts-submenu>a:before {content:"\uf0d9 "; font-family:"FontAwesome";}'+
-						'@media (max-width: 979px) {'+
-						'  .scripts-submenu>a:before {content:"";}'+
-						'  .scripts-submenu>.dropdown-menu {display:contents;position:initial;top:initial;margin-top:initial;left:initial;transform:none;min-width:initial}'+
-						'}'+
-						'</style>'
-					);
+				#scripts-menu.menu-type-quiz ul.dropdown-menu > li {text-align:left; color:#333; white-space:nowrap; line-height:20px; padding:3px 0; display:list-item; margin:0;}
+				#scripts-menu.menu-type-quiz ul.dropdown-menu > li.scripts-header {text-transform:uppercase; font-size:11px; font-weight:bold; padding:3px 20px; display:list-item;}
+				#scripts-menu.menu-type-quiz ul.dropdown-menu > li:hover:not(.scripts-header) {background-color:rgba(0,0,0,0.15)}
+
+				#scripts-menu.menu-type-quiz ul.dropdown-menu a {padding:3px 20px; color:#333; opacity:1; margin:0; border:0; display:inline;}
+
+				#scripts-menu.menu-type-quiz .scripts-submenu {position:relative;}
+				#scripts-menu.menu-type-quiz .scripts-submenu > a:after {content:">"; position:absolute; top:0; right:0; padding:3px 4px 3px 0;}
+				#scripts-menu.menu-type-quiz .scripts-submenu .dropdown-menu {left:100%; top:-7px;}
+
+				#scripts-menu.menu-type-site.sitemap__section.scripts-noposition {position:initial;}
+				#scripts-menu.menu-type-site .scripts-submenu>.dropdown-menu {display:none;}
+				#scripts-menu.menu-type-site .scripts-submenu.open>.dropdown-menu {display:block;position:absolute;top:0px;margin-top:0;left:-8px;transform:scale(1) translateX(-100%);min-width:200px}
+				#scripts-menu.menu-type-site .scripts-submenu .dropdown-menu:before {left:100%;top:12px;z-index:-1;}
+				#scripts-menu.menu-type-site .scripts-submenu .dropdown-menu .sitemap__pages {padding:5px 15px 0px 15px;}
+				#scripts-menu.menu-type-site .scripts-submenu .dropdown-menu .sitemap__page:last-child {margin-bottom:0;}
+				#scripts-menu.menu-type-site .scripts-submenu>a:before {content:"< ";}
+				@media (max-width: 979px) {
+				  #scripts-menu.menu-type-site .scripts-submenu>a:before {content:"";}
+				  #scripts-menu.menu-type-site .scripts-submenu>.dropdown-menu {display:contents;position:initial;top:initial;margin-top:initial;left:initial;transform:none;min-width:initial}
 				}
-				$('.user-summary').after(
-					'<li class="sitemap__section sitemap__section--subsection scripts-noposition">'+
-					'  <h3 class="sitemap__section-header sitemap__section-header--subsection">Scripts</h3>'+
-					'  <ul class="sitemap__pages scripts-header"></ul>'+
-					'</li>'
-				);
-				break;
+				</style>`
+			);
 		}
 
-		// Click to open sub-menu.
-		top_menu.on('click','.scripts-submenu>a',function(e){
-			var link = $(e.target).parent();
-			link.siblings('.scripts-submenu.open').removeClass('open');
-			if (location.pathname !== '/review/session') {
-				var menu = $('[id="#sitemap__account"]');
-				var submenu = link.find('.dropdown-menu');
-				submenu.css('font-size', '12px');
-				submenu.css('max-height', '');
-				var submenu_ul = submenu.find('>ul');
-				var top = Math.max(0, link.position().top);
-				link.toggleClass('open');
-				if (link.hasClass('open')) {
-					submenu.css('top',top+'px');
-					if (menu.outerHeight() - top < submenu.outerHeight())
+		// Install html.
+		if (location.pathname.match(/^\/subjects\/(review|lesson|[^\/]+\/lesson|extra_study)/) !== null ||
+			 location.pathname.match(/^\/subject-lessons\//) !== null ||
+			 location.pathname.match(/^\/recent-mistakes\/[^\/]+\/quiz/) !== null) {
+			summary_button = document.querySelector('.summary-button');
+
+			insert_gear_icon();
+			summary_button.parentElement.insertAdjacentHTML('afterend',
+				`<div id="scripts-menu" class="menu-type-quiz scripts-menu-icon character-header__menu-navigation-link">
+					<a class="scripts-icon summary-button" href="#">
+				     <svg class="wk-icon wk-icon--gear" viewBox="0 0 500 500" aria-hidden="true">
+				       <use href="#wk-icon__gear"></use>
+				     </svg>
+				   </a>
+					<ul class="dropdown-menu">
+						<li class="scripts-header">Script Menu</li>
+					</ul>
+				</div>`
+			);
+
+			top_menu = document.querySelector('#scripts-menu');
+			scripts_icon = document.querySelector('#scripts-menu > a.scripts-icon');
+
+			function scripts_icon_click(e) {
+				e.preventDefault();
+				e.stopPropagation();
+				top_menu.classList.toggle('open');
+				if (top_menu.classList.contains('open')) document.body.addEventListener('click', body_click);
+			}
+
+			scripts_icon.addEventListener('click', scripts_icon_click);
+
+		} else {
+			// Install html.
+			top_menu = document.querySelector('button[class$="account"]');
+			if (!top_menu) return;
+
+			document.querySelector('.user-summary').insertAdjacentHTML('afterend',
+				`<li id="scripts-menu" class="menu-type-site sitemap__section sitemap__section--subsection scripts-noposition">
+				  <h3 class="sitemap__section-header--subsection">Scripts</h3>
+				  <ul class="sitemap__pages scripts-header"></ul>
+				</li>`
+			);
+		}
+
+		// Click to open/close sub-menu.
+		scripts_menu = document.querySelector('#scripts-menu');
+		scripts_menu.addEventListener('click', submenu_click);
+        listener_history['scripts-menu'] = {link_handler: submenu_click, config: null, urls: ['*']};
+
+		function submenu_click(e){
+			e.preventDefault();
+			e.stopPropagation();
+			if (!e.target.matches('.scripts-submenu>a')) return false;
+			let link = e.target.parentElement;
+			for (let submenu of link.parentElement.querySelectorAll('.scripts-submenu.open')) {
+				if (submenu !== link) submenu.classList.remove('open');
+			};
+			if (location.pathname.match(/^\/subjects\/(review|lesson|[^\/]+\/lesson|extra_study)/) !== null ||
+				 location.pathname.match(/^\/subject-lessons\//) !== null ||
+				 location.pathname.match(/^\/recent-mistakes\/[^\/]+\/quiz/) !== null) {
+				link.classList.toggle('open');
+			} else {
+				let menu = document.querySelector('#sitemap__account,[id="#sitemap__account"]');
+				let submenu = link.querySelector('.dropdown-menu');
+				submenu.style.fontSize = '12px';
+				submenu.style.maxHeight = '';
+				let submenu_ul = submenu.querySelector(':scope > ul');
+				let top = Math.max(0, link.offsetTop);
+				link.classList.toggle('open');
+				if (link.classList.contains('open')) {
+					submenu.style.top = top+'px';
+					if (menu.offsetHeight - top < submenu.offsetHeight)
 					{
-						top = Math.max(0, menu.outerHeight() - submenu.outerHeight());
-						submenu.css('top', top+'px');
-						submenu.css('max-height', menu.outerHeight() - top);
+						top = Math.max(0, menu.offsetHeight - submenu.offsetHeight);
+						submenu.style.top = top+'px';
+						submenu.style.maxHeight = menu.offsetHeight - top;
 					}
 				}
-			} else {
-				link.toggleClass('open');
 			}
 			// If we opened the menu, listen for off-menu clicks.
-			if (link.hasClass('open')) {
-				$('body').on('click.scripts-submenu',function(e){
-					$('body').off('click.scripts-submenu');
-					$('.scripts-submenu').removeClass('open');
-					return true;
-				})
+			if (link.classList.contains('open')) {
+				document.body.addEventListener('click', body_click);
 			} else {
-				$('body').off('click.scripts-submenu');
+				document.body.removeEventListener('click', body_click);
 			}
-			return false;
-		});
-		return true;
+		}
 	}
 
 	//------------------------------
@@ -151,35 +189,37 @@
 	//------------------------------
 	function install_scripts_submenu(name) {
 		// Abort if already installed.
-		var safe_name = escape_attr(name);
-		var safe_text = escape_text(name);
-		var submenu = $('.scripts-submenu[name="'+safe_name+'"]');
-		if (submenu.length > 0) return submenu;
+		let safe_name = escape_attr(name);
+		let safe_text = escape_text(name);
+		let submenu = document.querySelector('.scripts-submenu[name="'+safe_name+'"]');
+		if (submenu) return submenu;
 
-		if (location.pathname === '/review/session') {
-			submenu = $(
-				'<li class="scripts-submenu" name="'+safe_name+'">'+
-				'  <a href="#">'+safe_text+'</a>'+
-				'  <ul class="dropdown-menu">'+
-				'  </ul>'+
-				'</li>'
+		let scripts_header = document.querySelector('.scripts-header');
+		if (!scripts_header) return;
+
+		if (location.pathname.match(/^\/subjects\/(review|lesson|[^\/]+\/lesson|extra_study)/) !== null ||
+			 location.pathname.match(/^\/subject-lessons\//) !== null ||
+			 location.pathname.match(/^\/recent-mistakes\/[^\/]+\/quiz/) !== null) {
+			scripts_header.insertAdjacentHTML('afterend',
+				`<li class="scripts-submenu" name="${safe_name}">
+					<a href="#">${safe_text}</a>
+					<ul class="dropdown-menu"></ul>
+				</li>`
 			);
-			$('.scripts-header').after(submenu);
 		} else {
-			submenu = $(
-				'<li class="sitemap__page scripts-submenu" name="'+safe_name+'">'+
-				'  <a href="#">'+safe_text+'</a>'+
-				'  <div class="sitemap__expandable-chunk dropdown-menu" data-expanded="true" aria-expanded="true">'+
-				'    <ul class="sitemap__pages">'+
-				'    </ul>'+
-				'  </div>'+
-				'</li>'
+			scripts_header.insertAdjacentHTML('beforeend',
+				`<li class="sitemap__page scripts-submenu" name="${safe_name}">
+				  <a href="#">${safe_text}</a>
+				  <div class="sitemap__expandable-chunk dropdown-menu" data-expanded="true" aria-expanded="true">
+					<ul class="sitemap__pages">
+					</ul>
+				  </div>
+				<li>`
 			);
-			$('.scripts-header').append(submenu);
 		}
-		var items = $('.scripts-header').siblings('.scripts-submenu,.script-link').sort(sort_name);
-		$('.scripts-header').after(items);
-		return submenu;
+		let menu_contents = scripts_header.parentElement.querySelectorAll(':scope > .scripts-submenu, :scope > .script-link');
+		for (let node of Array.from(menu_contents).sort(sort_name)) node.parentNode.append(node);
+		return document.querySelector('.scripts-submenu[name="'+safe_name+'"]');
 	}
 
 	//------------------------------
@@ -187,58 +227,117 @@
 	//------------------------------
 	function insert_script_link(config) {
 		// Abort if the script already exists
-		var link_id = config.name+'_script_link'; 
-		var link_text = escape_text(config.title);
-		if ($('#'+link_id).length !== 0) return;
+		let link_id = config.name+'_script_link';
+		let link_text = escape_text(config.title);
+		if (document.querySelector('#'+link_id)) return;
 		install_scripts_header();
-		var menu, classes, items, link_html;
+		let menu, classes, link_html;
+		let scripts_header = document.querySelector('.scripts-header');
+		if (!scripts_header) return;
+		let link = document.createElement('li');
+		link.id = link_id;
+		link.setAttribute('name', config.name);
+		link.innerHTML = '<a href="#">'+link_text+'</a>';
 		if (config.submenu) {
-			var submenu = install_scripts_submenu(config.submenu);
+			let submenu = install_scripts_submenu(config.submenu);
 
 			// Append the script, and sort the menu.
-			if (location.pathname === '/review/session') {
-				menu = submenu.find('.dropdown-menu');
+			if (location.pathname.match(/^\/subjects\/(review|lesson|[^\/]+\/lesson|extra_study)/) !== null ||
+				 location.pathname.match(/^\/subject-lessons\//) !== null ||
+				 location.pathname.match(/^\/recent-mistakes\/[^\/]+\/quiz/) !== null) {
+				menu = submenu.querySelector('.dropdown-menu');
 			} else {
-				menu = submenu.find('.dropdown-menu>ul');
+				menu = submenu.querySelector('.dropdown-menu>ul');
 			}
 			classes = ['sitemap__page'];
 			if (config.class) classes.push(config.class_html);
-			link_html = '<li id="'+link_id+'" name="'+config.name+'" class="'+classes.join(' ')+'"><a href="#">'+link_text+'</a></li>';
-			menu.append(link_html);
-			menu.append(menu.children().sort(sort_name));
+			link.setAttribute('class', classes.join(' '));
+			link.innerHTML = '<a href="#">'+link_text+'</a>';
+			menu.append(link);
 		} else {
 			classes = ['sitemap__page', 'script-link'];
 			if (config.class) classes.push(config.class_html);
-			link_html = '<li id="'+link_id+'" name="'+config.name+'" class="'+classes.join(' ')+'"><a href="#">'+link_text+'</a></li>';
-			if (location.pathname === '/review/session') {
-				$('.scripts-header').after(link_html);
-				items = $('.scripts-header').siblings('.scripts-submenu,.script-link').sort(sort_name);
-				$('.scripts-header').after(items);
+			link.setAttribute('class', classes.join(' '));
+			if (location.pathname.match(/^\/subjects\/(review|lesson|[^\/]+\/lesson|extra_study)/) !== null ||
+				 location.pathname.match(/^\/subject-lessons\//) !== null ||
+				 location.pathname.match(/^\/recent-mistakes\/[^\/]+\/quiz/) !== null) {
+				scripts_header.after(link);
 			} else {
-				$('.scripts-header').append(link_html);
-				items = $('.scripts-header').siblings('.scripts-submenu,.script-link').sort(sort_name);
-				$('.scripts-header').append(items);
+				scripts_header.append(link);
 			}
 		}
+		let menu_contents = scripts_header.parentElement.querySelectorAll(':scope > .scripts-submenu, :scope > .script-link');
+		for (let node of Array.from(menu_contents).sort(sort_name)) node.parentNode.append(node);
 
 		// Add a callback for when the link is clicked.
-		$('#'+link_id).on('click', function(e){
-			$('body').off('click.scripts-link');
-			$('#scripts-menu').removeClass('open');
-			$('.scripts-submenu').removeClass('open');
-			$('[class$="account"]').siblings('[data-navigation-section-toggle]').click();
-			var nav_toggle = $('.navigation__toggle');
-			if (nav_toggle.is(':visible')) nav_toggle.click();
+		document.querySelector('#'+link_id).addEventListener('click', link_handler);
+        let url = location.href;
+        if (url === 'https://www.wanikani.com/' || url === 'https://www.wanikani.com/#') url = 'https://www.wanikani.com/dashboard';
+        if (listener_history[link_id]) {
+            let urls = listener_history[link_id].urls;
+            if(urls.indexOf(url) === -1) listener_history[link_id].urls.push(url);
+        } else {
+            listener_history[link_id] = {link_handler: link_handler, config: config, urls: [url]};
+        };
+
+        function link_handler(e){
+			e.preventDefault();
+			e.stopPropagation();
+			document.body.removeEventListener('click', body_click);
+			document.querySelector('#scripts-menu').classList.remove('open');
+			for (let submenu of document.querySelectorAll('.scripts-submenu')) submenu.classList.remove('open');
+			if (document.querySelector('#sitemap__account,[id="#sitemap__account"]')) {
+				document.querySelector('#sitemap__account,[id="#sitemap__account"]').parentElement.querySelector('[data-expandable-navigation-target],[data-navigation-section-toggle]').click();
+				let nav_toggle = document.querySelector('.navigation__toggle');
+				if (nav_toggle.offsetWidth > 0 || nav_toggle.offsetWidth > 0) nav_toggle.click();
+			}
 			config.on_click(e);
-			return false;
-		});
+		};
 	}
+
+    var retry
+    var listener_executing = false;
+    const max_retry = 5;
+    window.addEventListener("turbo:load", (e) => {
+        if (listener_executing) return;
+        if (startup_ongoing) return;
+        listener_executing = true;
+        retry = max_retry;
+        setTimeout(reinstate_listeners, 0, e.detail.url)
+    });
+
+    function reinstate_listeners(url){
+        let scripts_menu = document.getElementById('scripts-menu');
+        if (scripts_menu === null) {
+            retry--;
+            if (retry > 0) {
+                setTimeout(reinstate_listeners, 100);
+            } else {
+                listener_executing = false;
+            };
+        }
+        for (let key of Object.keys(listener_history)){
+            let submenu_element = document.querySelector('#'+key);
+            if (submenu_element) {
+                let event_listener = listener_history[key].link_handler;
+                submenu_element.removeEventListener(event_listener);
+                submenu_element.addEventListener('click', event_listener);
+            } else {
+                if (url === 'https://www.wanikani.com/' || url === 'https://www.wanikani.com/#') url = 'https://www.wanikani.com/dashboard';
+                let urls = listener_history[key].urls;
+                if (urls !== ['*'] && urls.indexOf(url) === -1) {continue};
+                let config = listener_history[key].config;
+                insert_script_link(config);
+            };
+        };
+        listener_executing = false;
+    };
 
 	wkof.ready('document').then(set_ready_state);
 
 	function set_ready_state(){
 		// Delay guarantees include() callbacks are called before ready() callbacks.
-		setTimeout(function(){wkof.set_state('wkof.Menu', 'ready');},0);
+		setTimeout(function(){wkof.set_state('wkof.Menu', 'ready'); startup_ongoing = false;},0);
 	}
 
 })(window);
